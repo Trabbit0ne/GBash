@@ -18,8 +18,6 @@ clear
 
 # VARIABLES
 file=$1
-line_amount=$(cat $file | wc -l)
-basename_file=$(basename "$file")
 
 # Colors
 R="\e[31m"        # Classic RED
@@ -59,9 +57,14 @@ BANNER() {
 }
 
 CHECK_CONFIGS() {
-    # Verify if the file is provided
-    if [[ -z $file ]]; then
-        echo -e "${R}ERROR: Please provide a file.${N}"
+    # Verify if the file is provided or input is piped
+    if [[ -z $file && -t 0 ]]; then
+        echo -e "${R}ERROR: Please provide a file or pipe input.${N}"
+        echo "            [Usage] "
+        echo "{+}=========================={+}"
+        echo "   - gbash <file(.sh)>"
+        echo "   - cat <file(.sh)> | gbash"
+        echo "{+}=========================={+}"
         exit 1
     fi
 }
@@ -80,11 +83,13 @@ CHECK_CODE() {
     local shebangs=("#!/bin/bash" "#!/usr/bin/env bash")
     local first_line
 
-    # Read the first line of the file
-    if [[ -f $file ]]; then
+    # Read the first line of the file or piped input
+    if [[ -n $file && -f $file ]]; then
         read -r first_line < "$file"
+    elif [[ -p /dev/stdin ]]; then
+        read -r first_line
     else
-        echo -e "${R}ERROR: File not found.${N}"
+        echo -e "${R}ERROR: File not found or invalid input.${N}"
         exit 1
     fi
 
@@ -152,6 +157,17 @@ SHOW_PROGRESS() {
 # Main function
 main() {
     CHECK_CONFIGS
+
+    # Read input from pipe if available
+    if [[ -p /dev/stdin ]]; then
+        file=$(mktemp)
+        cat > "$file"
+    fi
+
+    # Get the basename and line amount after handling input
+    basename_file=$(basename "$file")
+    line_amount=$(wc -l < "$file")
+
     BANNER
     CHECK_EXTENSION
     CHECK_CODE
@@ -160,6 +176,11 @@ main() {
     CHECK_COMMENTS
     CHECK_SYNTAX_ERRORS
     SHOW_PROGRESS
+
+    # Clean up temporary file if created
+    if [[ -n $tmp_file ]]; then
+        rm "$tmp_file"
+    fi
 }
 
 # Call the main function
