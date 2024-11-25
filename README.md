@@ -1,5 +1,6 @@
 # GBash
-Bash code verifier
+![image](https://github.com/user-attachments/assets/2cb33676-6663-49cf-b55d-7644c19f2978)
+
 
 ## Installation
 ```
